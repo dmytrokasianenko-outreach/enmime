@@ -152,31 +152,26 @@ func ReadEnvelope(r io.Reader) (*Envelope, error) {
 	return defaultParser.ReadEnvelope(r)
 }
 
-// ReadEnvelope is the same as ReadEnvelope, but respects parser configurations.
+// ReadEnvelope is the same as ReadEnvelope, but respects configurations.
 func (p Parser) ReadEnvelope(r io.Reader) (*Envelope, error) {
 	// Read MIME parts from reader
 	root, err := p.ReadParts(r)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to ReadParts")
 	}
-	return p.EnvelopeFromPart(root)
+	return EnvelopeFromPart(root)
 }
 
 // EnvelopeFromPart uses the provided Part tree to build an Envelope, downconverting HTML to plain
 // text if needed, and sorting the attachments, inlines and other parts into their respective
 // slices.  Errors are collected from all Parts and placed into the Envelopes Errors slice.
 func EnvelopeFromPart(root *Part) (*Envelope, error) {
-	return defaultParser.EnvelopeFromPart(root)
-}
-
-// EnvelopeFromPart is the same as EnvelopeFromPart, but respects parser configurations.
-func (p Parser) EnvelopeFromPart(root *Part) (*Envelope, error) {
 	e := &Envelope{
 		Root:   root,
 		header: &root.Header,
 	}
 
-	if detectMultipartMessage(root, p.multipartWOBoundaryAsSinglepart) {
+	if detectMultipartMessage(root) {
 		// Multi-part message (message with attachments, etc)
 		if err := parseMultiPartBody(root, e); err != nil {
 			return nil, err
